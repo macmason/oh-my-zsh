@@ -14,6 +14,9 @@ ZSH_THEME_GIT_PROMPT_SUFFIX=""
 ZSH_THEME_GIT_PROMPT_CLEAN=""
 ZSH_THEME_GIT_PROMPT_DIRTY="$RESET_COLOR"
 
+# Set up how we present virtualenv status.
+export VIRTUAL_ENV_DISABLE_PROMPT=1
+
 # Lifted from fishy.zsh-theme, because this is cool.
 _fishy_collapsed_wd() {
   echo $(echo $1 | perl -pe "
@@ -24,16 +27,6 @@ _fishy_collapsed_wd() {
 ")
 }
 
-# For tracking CITC client state.
-CITC_ROOT=/google/src/cloud/jmason
-_citc_helper() {
-  # This will have ~CITC_ROOT on the front, because of a weird sub.
-  # This == thing turns off word splitting.
-  local path_prompt="${==$(print -P '%~')}"
-  # So take that off.
-  echo ${path_prompt##"~CITC_ROOT/"}
-}
-
 _mac_lprompt() {
   local upperl="╭─"
   local lowerl="╰─"
@@ -41,8 +34,6 @@ _mac_lprompt() {
   local newline="\n"
   local postnewline="]"
   local pathstring="~"
-  # Am I doing a path or a CITC?
-  local citc=${=="$(_citc_helper)"}
 
   # Don't print two lines if I'm in ~
   if [[ $(print -P "%~") == "~" ]]; then
@@ -59,6 +50,7 @@ _mac_lprompt() {
 }
 
 _mac_rprompt() {
+  # Figure out the git toplevel.
   local git_root_dir=""
   # If I'm in my homedir.
   if [[ $(print -P "%~") == "~" ]]; then
@@ -72,17 +64,26 @@ _mac_rprompt() {
     fi
   fi
 
+  # Prep the git text.
   local git_string=""
   if [[ $(parse_git_dirty) != "" ]]; then
     git_string="$RED$git_root_dir:$(git_prompt_info)$RESET_COLOR|"
   else
     git_string="$git_root_dir:$(git_prompt_info)$RESET_COLOR|"
   fi
+
+  # Prep the ROS text, if any.
   local ros_string=""
   if [[ "$ROS_DISTRO" != "" ]]; then
     ros_string="$GREEN$ROS_DISTRO$RESET_COLOR|"
   fi
-  echo "[""$git_string$ros_string$BLUE%m$RESET_COLOR""]"
+
+  # Prep the virtualenv text, if any.
+  local virtualenv_string=""
+  if [[ "$VIRTUAL_ENV" != "" ]]; then
+    virtualenv_string="$YELLOW$(basename $VIRTUAL_ENV)$RESET_COLOR|" 
+  fi
+  echo "[""$git_string$ros_string$virtualenv_string$BLUE%m$RESET_COLOR""]"
 }
 
 PROMPT='$(_mac_lprompt)'
